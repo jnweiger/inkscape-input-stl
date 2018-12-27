@@ -34,6 +34,7 @@ else:   # Linux
   if not os.path.exists(slic3r):
     slic3r = 'slic3r'
 
+
 parser = argparse.ArgumentParser(description='convert an STL file to a nice SVG for inkscape. The STL object is projected onto the X-Y plane.')
 parser.add_argument('--layer-height', '--layer_height', '-l', default=None, help='slic3r layer height, probably in mm. Default: per slic3r config')
 parser.add_argument('--rx', default=None, type=float, help='Rotate STL object around X-Axis before importing.')
@@ -45,8 +46,9 @@ parser.add_argument('stlfile', type=str, help='STL input file to convert to SVG 
 
 args = parser.parse_args()
 
-# input-stl.inx advertises use of '$HOME'
-args.slic3r_cmd = re.sub('^\$HOME', os.environ['HOME'], args.slic3r_cmd)
+# input-stl.inx advertises use of '$HOME' -- windows has HOMEPATH instead of HOME
+home = os.environ.get('HOME', os.environ.get('HOMEPATH', 'NO-HOME'))
+args.slic3r_cmd = re.sub('^\$HOME(PATH)?', home, args.slic3r_cmd)
 
 if sys_platform.startswith('win'):
   # assert we run the commandline version of slic3r
