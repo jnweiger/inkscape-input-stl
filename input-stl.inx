@@ -2,13 +2,12 @@
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
 	<_name>STL Input</_name>
 	<id>com.github.jnweiger.inkscape.input.stl</id>
-	<dependency type="executable" location="extensions">inkscape_stl_input.py</dependency>
+	<dependency type="executable" location="extensions">input-stl.py</dependency>
 	<param name="tab" type="notebook">
 		<page name="options" _gui-text="Options">
 			<param name="layer_height" type="string" _gui-text="Layer height [mm]:">1.0</param>
-			<param name="rx" type="string" _gui-text="Rotate X (deg):">0</param>
-			<param name="ry" type="string" _gui-text="Rotate X (deg):">0</param>
-			<param name="ry" type="string" _gui-text="Manual y-axis origin (mm):">0.0</param>
+			<param name="rx" type="float" precision="1" min="-360.0" max="360.0" _gui-text="3D-Rotate X-Axis [deg]:">0</param>
+			<param name="ry" type="float" precision="1" min="-360.0" max="360.0" _gui-text="3D-Rotate Y-Axis [deg]:">0</param>
 		</page>
 		<page name="slic3r" _gui-text="Slic3r Settings">
 			<param name="slic3r_cmd" type="string" _gui-text="Slic3r Command">slic3r</param>
@@ -28,18 +27,18 @@ $HOME/Slic3r/Slic3r-console.exe 		(Windows)
 - The polygons are converted to paths for better editing in inkscape.
 
 https://github.com/jnweiger/inkscape-input-stl
-(C) 2018 by Jürgen Weigert <jnweiger@gmail.com>
+(C) 2018 by Jürgen Weigert &lt;jnweiger@gmail.com&gt;
 Distribute under GPLv2 or ask.
 			</_param>
 		</page>
 	</param>
 	<input>
 		<extension>.stl</extension>
-		<mimetype>application/vnd.ms-pkistl</mimetype>
+		<mimetype>application/sla</mimetype>
 		<_filetypename>Stereolitography File(*.stl)</_filetypename>
 		<_filetypetooltip>Import STL Files</_filetypetooltip>
 	</input>
 	<script>
-		<command reldir="extensions" interpreter="python">inkscape_stl_input.py</command>
+		<command reldir="extensions" interpreter="python">input-stl.py</command>
 	</script>
 </inkscape-extension>
