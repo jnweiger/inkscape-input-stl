@@ -94,7 +94,7 @@ stdout, stderr = proc.communicate()
 
 cmd = [args.slic3r_cmd, '--no-gui']
 if args.layer_height is not None:
-  cmd += ['--layer-height', args.layer_height, '--first-layer-height', args.layer_height+'mm']
+  cmd += ['--layer-height', args.layer_height, '--first-layer-height', '0.1mm']     # args.layer_height+'mm']
 cmd += ['--export-svg', '-o', svgfile, stlfile]
 
 try:
@@ -146,12 +146,15 @@ for e in doc.iterfind('//{*}polygon'):
   polygoncount += 1
   e.attrib['id'] = 'polygon%d' % polygoncount
   e.attrib['{http://www.inkscape.org/namespaces/inkscape}connector-curvature'] = '0'
-  e.attrib['style'] = 'fill:none;fill-opacity:1;stroke:#000000;stroke-opacity:1'        # ;stroke-width:0.1'
+  e.attrib['style'] = 'fill:none;fill-opacity:1;stroke:#000000;stroke-opacity:1;stroke-width:0.1'
   e.attrib['d'] = 'M ' + re.sub(' ', ' L ', e.attrib['points']) + ' Z'
   del e.attrib['points']
   if e.attrib.get('{http://slic3r.org/namespaces/slic3r}type') == 'contour':
     # remove contour, but keep all slic3r:type='hole', whatever it is worth later.
     del e.attrib['{http://slic3r.org/namespaces/slic3r}type']
+  # add sibling to e:
+  # <svg:desc id="descpoly60">Depth: 1mm\nOffset: 31mm</svg:desc>
+  
 
 try:
   # Available in lxml since 3.5.0
