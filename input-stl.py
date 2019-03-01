@@ -39,10 +39,11 @@ parser = argparse.ArgumentParser(description='convert an STL file to a nice SVG 
 parser.add_argument('--layer-height', '--layer_height', '-l', default=None, help='slic3r layer height, probably in mm. Default: per slic3r config')
 parser.add_argument('--rx', default=None, type=float, help='Rotate STL object around X-Axis before importing.')
 parser.add_argument('--ry', default=None, type=float, help='Rotate STL object around Y-Axis before importing.')
+parser.add_argument('--numbers', dest='numbers', default='false', help='Add layer numbers.')
 parser.add_argument('--stdout', '--tab', default=None, type=str, help=argparse.SUPPRESS)
 parser.add_argument('--slic3r-cmd', '--slic3r_cmd', '-s', default=slic3r, help='Command to invoke slic3r. Default is "'+slic3r+'"')
 parser.add_argument('--output', '-o', default=None, help='SVG output file name or "-" for stdout. Default: Name derived from STL input.') 
-parser.add_argument('stlfile', type=str, help='STL input file to convert to SVG with the same name, but ".svg" suffix.');
+parser.add_argument('stlfile', type=str, help='STL input file to convert to SVG with the same name, but ".svg" suffix.')
 
 args = parser.parse_args()
 
@@ -159,6 +160,14 @@ for e in doc.iterfind('//{*}g'):
     desc.text = "Depth: %.2fmm\nRaise: %.2fmm\n" % (1/scale, layercount/scale)
     e.append(desc)
     layercount+=1
+    if args.numbers != 'false':
+      num = etree.Element('{http://www.w3.org/2000/svg}text')
+      num.attrib['id'] = 'textnum'+str(layercount)
+      num.attrib['x'] = str(layercount*2)
+      num.attrib['y'] = str(layercount*4)
+      num.attrib['style'] = 'fill:#00FF00;fill-opacity:1;stroke:#00FF00;font-family:FreeSans;font-size:10pt;stroke-opacity:1;stroke-width:0.1'
+      num.text = "%d" % layercount
+      e.append(num)
   
   
 
@@ -170,7 +179,7 @@ for e in doc.iterfind('//{*}polygon'):
   polygoncount += 1
   e.attrib['id'] = 'polygon%d' % polygoncount
   e.attrib['{http://www.inkscape.org/namespaces/inkscape}connector-curvature'] = '0'
-  e.attrib['style'] = 'fill:none;fill-opacity:1;stroke:#000000;stroke-opacity:1;stroke-width:0.1'
+  e.attrib['style'] = 'fill:none;fill-opacity:1;stroke:#FF0000;stroke-opacity:1;stroke-width:0.1'
   e.attrib['d'] = 'M ' + re.sub(' ', ' L ', scale_points(e.attrib['points'], 1/scale)) + ' Z'
   del e.attrib['points']
   if e.attrib.get('{http://slic3r.org/namespaces/slic3r}type') == 'contour':
