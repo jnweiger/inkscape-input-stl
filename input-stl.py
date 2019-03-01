@@ -92,10 +92,26 @@ except OSError as e:
   sys.exit(1)
 stdout, stderr = proc.communicate()
 
+# option --layer-height does not work. We use --scale instead...
+scale = 1/float(args.layer_height)
 cmd = [args.slic3r_cmd, '--no-gui']
 if args.layer_height is not None:
-  cmd += ['--layer-height', args.layer_height, '--first-layer-height', '0.1mm']     # args.layer_height+'mm']
+  cmd += ['--scale', str(scale), '--first-layer-height', '0.1mm']     # args.layer_height+'mm']
 cmd += ['--export-svg', '-o', svgfile, stlfile]
+
+def scale_points(pts, scale):
+  """ str='276.422496,309.4 260.209984,309.4 260.209984,209.03 276.422496,209.03'
+  """
+  magic = 10    # layer width seems to be 0.1mm ???
+  return re.sub('\d*\.\d*', lambda x: str(float(x.group(0))*scale*magic), pts)
+
+try:
+  if args.stdout:
+    tty = open("/dev/tty", "w")
+  else:
+    tty = sys.stderr
+except:
+    tty = sys.stderr
 
 try:
   proc = subprocess.Popen(cmd, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -136,7 +152,15 @@ for e in doc.iterfind('//{*}g'):
   if e.attrib['{http://slic3r.org/namespaces/slic3r}z'] and e.attrib['id']:
     e.attrib['{http://www.inkscape.org/namespaces/inkscape}label'] = e.attrib['id'] + ' slic3r:z=' + e.attrib['{http://slic3r.org/namespaces/slic3r}z']
     del e.attrib['{http://slic3r.org/namespaces/slic3r}z']
+    # for some fun with our inkscape-paths2openscad extension, add sibling to e:
+    # <svg:desc id="descpoly60">Depth: 1mm\nOffset: 31mm</svg:desc>
+    desc = etree.Element('{http://www.w3.org/2000/svg}desc')
+    desc.attrib['id'] = 'descl'+str(layercount)
+    desc.text = "Depth: %.2fmm\nRaise: %.2fmm\n" % (1/scale, layercount/scale)
+    e.append(desc)
     layercount+=1
+  
+  
 
 polygoncount = 0
 for e in doc.iterfind('//{*}polygon'):
@@ -147,14 +171,11 @@ for e in doc.iterfind('//{*}polygon'):
   e.attrib['id'] = 'polygon%d' % polygoncount
   e.attrib['{http://www.inkscape.org/namespaces/inkscape}connector-curvature'] = '0'
   e.attrib['style'] = 'fill:none;fill-opacity:1;stroke:#000000;stroke-opacity:1;stroke-width:0.1'
-  e.attrib['d'] = 'M ' + re.sub(' ', ' L ', e.attrib['points']) + ' Z'
+  e.attrib['d'] = 'M ' + re.sub(' ', ' L ', scale_points(e.attrib['points'], 1/scale)) + ' Z'
   del e.attrib['points']
   if e.attrib.get('{http://slic3r.org/namespaces/slic3r}type') == 'contour':
     # remove contour, but keep all slic3r:type='hole', whatever it is worth later.
     del e.attrib['{http://slic3r.org/namespaces/slic3r}type']
-  # add sibling to e:
-  # <svg:desc id="descpoly60">Depth: 1mm\nOffset: 31mm</svg:desc>
-  
 
 try:
   # Available in lxml since 3.5.0
@@ -166,10 +187,6 @@ except:
   pass
 
 try:
-  if args.stdout:
-    tty = open("/dev/tty", "w")
-  else:
-    tty = sys.stderr
   print("{0}: {1} polygons in {2} layers converted to paths.".format(svgfile, polygoncount, layercount), file=tty)
 except:
   pass
