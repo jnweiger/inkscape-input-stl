@@ -16,13 +16,15 @@
 #                v0.1 First working standalone tool.
 # 2018-12-26 jw, v0.3 Mesh rotation support via numpy-stl. Fully optional.
 #                v0.4 Works fine as an inkscape input extension under Linux.
+# 2019-03-01 jw, v0.5 numbers and center option added.
 
 from __future__ import print_function
 import sys, os, re, argparse
 import subprocess, tempfile
 from lxml import etree
+from subprocess import Popen, PIPE
 
-_version = '0.4'
+_version = '0.5'
 
 sys_platform = sys.platform.lower()
 if sys_platform.startswith('win'):
@@ -40,6 +42,7 @@ parser.add_argument('--layer-height', '--layer_height', '-l', default=None, help
 parser.add_argument('--rx', default=None, type=float, help='Rotate STL object around X-Axis before importing.')
 parser.add_argument('--ry', default=None, type=float, help='Rotate STL object around Y-Axis before importing.')
 parser.add_argument('--numbers', dest='numbers', default='false', help='Add layer numbers.')
+parser.add_argument('--center', dest='center', default='false', help='Add center marks.')
 parser.add_argument('--stdout', '--tab', default=None, type=str, help=argparse.SUPPRESS)
 parser.add_argument('--slic3r-cmd', '--slic3r_cmd', '-s', default=slic3r, help='Command to invoke slic3r. Default is "'+slic3r+'"')
 parser.add_argument('--output', '-o', default=None, help='SVG output file name or "-" for stdout. Default: Name derived from STL input.') 
@@ -100,11 +103,35 @@ if args.layer_height is not None:
   cmd += ['--scale', str(scale), '--first-layer-height', '0.1mm']     # args.layer_height+'mm']
 cmd += ['--export-svg', '-o', svgfile, stlfile]
 
+magic = 10    # layer width seems to be 0.1mm ???
+
 def scale_points(pts, scale):
   """ str='276.422496,309.4 260.209984,309.4 260.209984,209.03 276.422496,209.03'
   """
-  magic = 10    # layer width seems to be 0.1mm ???
   return re.sub('\d*\.\d*', lambda x: str(float(x.group(0))*scale*magic), pts)
+
+def bbox_info(slic3r, file):
+  cmd = [ slic3r, '--no-gui', '--info', file ]
+  p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+  out, err = p.communicate()
+  if len(err):
+    raise ValueError(err)
+
+  bb = {}
+  for l in out.decode().split("\n"):
+    m = re.match('((min|max)_[xyz])\s*=\s*(.*)', l)
+    if m: bb[m.group(1)] = float(m.group(3))
+  if (len(bb) != 6):
+    raise ValueError("slic3r --info did not return 6 elements for bbox")
+  return bb
+
+if args.center != 'false':
+  bb = bbox_info(args.slic3r_cmd, stlfile)
+  # Ouch: bbox info gives us stl coordinates. slic3r translates them into svg px using 75dpi.
+  cx = (-bb['min_x'] + bb['max_x']) * 0.5 * 1/scale * magic * 25.4 / 75
+  cy = (-bb['min_y'] + bb['max_y']) * 0.5 * 1/scale * magic * 25.4 / 75
+print(cx, cy, file=sys.stderr)
+
 
 try:
   if args.stdout:
@@ -164,12 +191,18 @@ for e in doc.iterfind('//{*}g'):
       num = etree.Element('{http://www.w3.org/2000/svg}text')
       num.attrib['id'] = 'textnum'+str(layercount)
       num.attrib['x'] = str(layercount*2)
-      num.attrib['y'] = str(layercount*4)
+      num.attrib['y'] = str(layercount*4+10)
       num.attrib['style'] = 'fill:#00FF00;fill-opacity:1;stroke:#00FF00;font-family:FreeSans;font-size:10pt;stroke-opacity:1;stroke-width:0.1'
       num.text = "%d" % layercount
       e.append(num)
-  
-  
+    if args.center != 'false':
+      cc = etree.Element('{http://www.w3.org/2000/svg}path')
+      cc.attrib['id'] = 'ccross'+str(layercount)
+      cc.attrib['style'] = 'fill:none;fill-opacity:1;stroke:#0000FF;font-family:FreeSans;font-size:10pt;stroke-opacity:1;stroke-width:0.1'
+      cc.attrib['d'] = 'M %s,%s v 10 M %s,%s h 10 M %s,%s h 4' % (cx, cy-5,  cx-5, cy,  cx-2, cy+5)
+      e.append(cc)
+
+
 
 polygoncount = 0
 for e in doc.iterfind('//{*}polygon'):

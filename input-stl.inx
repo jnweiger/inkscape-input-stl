@@ -9,6 +9,7 @@
 			<param name="rx" type="float" precision="1" min="-360.0" max="360.0" _gui-text="3D-Rotate X-Axis [deg]:">0</param>
 			<param name="ry" type="float" precision="1" min="-360.0" max="360.0" _gui-text="3D-Rotate Y-Axis [deg]:">0</param>
       			<param name="numbers" type="boolean" _gui-text="Add layer numbers">false</param>
+      			<param name="center" type="boolean" _gui-text="Add center marks">false</param>
 		</page>
 		<page name="slic3r" _gui-text="Slic3r Settings">
 			<param name="slic3r_cmd" type="string" _gui-text="Slic3r Command">slic3r</param>
