@@ -130,7 +130,7 @@ if args.center != 'false':
   # Ouch: bbox info gives us stl coordinates. slic3r translates them into svg px using 75dpi.
   cx = (-bb['min_x'] + bb['max_x']) * 0.5 * 1/scale * magic * 25.4 / 75
   cy = (-bb['min_y'] + bb['max_y']) * 0.5 * 1/scale * magic * 25.4 / 75
-print(cx, cy, file=sys.stderr)
+# print(cx, cy, file=sys.stderr)
 
 
 try:
