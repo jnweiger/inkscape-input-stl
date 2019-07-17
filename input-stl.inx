@@ -28,8 +28,12 @@ $HOME/Slic3r/Slic3r-console.exe 		(Windows)
 - Each "slice" is a group of polygons, with a label indicating its z position.
 - The polygons are converted to paths for better editing in inkscape.
 
+- Use Object -> Rows &amp; Columns ... distribute the slices in a grid.
+
 https://github.com/jnweiger/inkscape-input-stl
 (C) 2018 by Jürgen Weigert &lt;jnweiger@gmail.com&gt;
+Version 0.6
+
 Distribute under GPLv2 or ask.
 			</_param>
 		</page>

@@ -17,6 +17,9 @@
 # 2018-12-26 jw, v0.3 Mesh rotation support via numpy-stl. Fully optional.
 #                v0.4 Works fine as an inkscape input extension under Linux.
 # 2019-03-01 jw, v0.5 numbers and center option added.
+# 2019-07-17 jw, v0.6 fixed ry rotation.
+#
+# FIXME: should use svg_pathstats(path_d): to compute bounding boxes.
 
 from __future__ import print_function
 import sys, os, re, argparse
@@ -24,7 +27,7 @@ import subprocess, tempfile
 from lxml import etree
 from subprocess import Popen, PIPE
 
-_version = '0.5'
+_version = '0.6'
 
 sys_platform = sys.platform.lower()
 if sys_platform.startswith('win'):
@@ -70,7 +73,7 @@ if args.rx or args.ry:
 
     mesh = stl.Mesh.from_file(stlfile)
     if args.rx: mesh.rotate([1.0, 0.0, 0.0], math.radians(float(args.rx)))
-    if args.ry: mesh.rotate([1.0, 0.0, 0.0], math.radians(float(args.ry)))
+    if args.ry: mesh.rotate([0.0, 1.0, 0.0], math.radians(float(args.ry)))
     stlfile = tmpstlfile = tempfile.gettempdir() + os.path.sep + 'ink-stl-' + str(os.getpid()) + '.stl'
     mesh.save(stlfile)
   except Exception as e:
@@ -109,6 +112,63 @@ def scale_points(pts, scale):
   """ str='276.422496,309.4 260.209984,309.4 260.209984,209.03 276.422496,209.03'
   """
   return re.sub('\d*\.\d*', lambda x: str(float(x.group(0))*scale*magic), pts)
+
+
+## CAUTION: keep svg_pathstats() in sync with inkscape-centerlinetrace
+def svg_pathstats(path_d):
+  """ calculate statistics from an svg path:
+      length (measuring bezier splines as straight lines through the handles).
+      points (all, including duplicates)
+      segments (number of not-connected!) path segments.
+      simple bounding box (ignoring curves of splines, but inclding handles.)
+  """
+  xmin = 1e99
+  ymin = 1e99
+  xmax = -1e99
+  ymax = -1e99
+  p_points = 0
+  p_length = 0
+  p_segments = 0
+
+  path_d = path_d.lower()
+  for p in path_d.split('m'):
+
+    pp = re.sub('[cl,]', ' ', p)
+    pp,closed = re.subn('z\s*$','',pp)
+    xy = pp.split()
+    if len(xy) < 2:
+      # print len(pp)
+      # print "short path error"
+      continue
+    x0 = float(xy[0])
+    y0 = float(xy[1])
+    if x0 > xmax: xmax = x0
+    if x0 < xmin: xmin = x0
+    if y0 > ymax: ymax = y0
+    if y0 < ymin: ymin = y0
+
+    p_points += 1
+    x = xy[2::2]
+    y = xy[3::2]
+    if len(x):
+      p_segments += 1
+      if closed:
+        x.extend(x0)
+        y.extend(y0)
+
+    for i in range(len(x)):
+      p_points += 1
+      dx = float(x[i]) - x0
+      dy = float(y[i]) - y0
+      p_length += math.sqrt( dx * dx + dy * dy )
+      x0,y0 = float(x[i]),float(y[i])
+      if x0 > xmax: xmax = x0
+      if x0 < xmin: xmin = x0
+      if y0 > ymax: ymax = y0
+      if y0 < ymin: ymin = y0
+
+  return { 'points':p_points, 'segments':p_segments, 'length':p_length, 'bbox': (xmin,ymin, xmax, ymax) }
+
 
 def bbox_info(slic3r, file):
   cmd = [ slic3r, '--no-gui', '--info', file ]
