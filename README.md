@@ -15,7 +15,7 @@ If there is an error message instead of the STL import dialog, check the file ~/
 * Make sure you installed inkscape from inkscape.org via their msi install wizard. The inkscape from the windows appstore does not load any extensions.
 * Install slic3r from https://dl.slic3r.org/win
 * Download https://github.com/jnweiger/inkscape-input-stl/archive/master.zip, extract the input-stl.py and input-stl.inx files.
-* Move the two files to C:\Program Files\Inkscape\share\extensions
+* Move the two files to C:\Program Files\Inkscape\share\extensions or C:\Program Files\Inkscape\share\inkscape\extensions
 * Restart inkscape.
 * Use import, and select 'Files of type: All Inkscape Files' -- STL files should be visible e.g. in the test folder of this repo.
 * Try import an *.stl file, the import dialog should open.
